@@ -1,0 +1,28 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 60;
+ objects = {
+  A00000000000000000000001 = {isa = PBXProject; attributes = {LastUpgradeCheck = 1600;}; buildConfigurationList = A00000000000000000000002; compatibilityVersion = "Xcode 15.0"; developmentRegion = en; knownRegions = (en, Base); mainGroup = A00000000000000000000003; packageReferences = (A00000000000000000000010); productRefGroup = A00000000000000000000004; projectDirPath = ""; projectRoot = ""; targets = (A00000000000000000000005);};
+  A00000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000020, A00000000000000000000021); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+  A00000000000000000000003 = {isa = PBXGroup; children = (A00000000000000000000006, A00000000000000000000007, A00000000000000000000004); sourceTree = "<group>";};
+  A00000000000000000000004 = {isa = PBXGroup; children = (A00000000000000000000008); name = Products; sourceTree = "<group>";};
+  A00000000000000000000005 = {isa = PBXNativeTarget; buildConfigurationList = A00000000000000000000009; buildPhases = (A00000000000000000000011, A00000000000000000000012); buildRules = (); dependencies = (); name = LinkBudSample; packageProductDependencies = (A00000000000000000000014); productName = LinkBudSample; productReference = A00000000000000000000008; productType = "com.apple.product-type.application";};
+  A00000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkBudSample/LinkBudSampleApp.swift; sourceTree = "<group>";};
+  A00000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Sample.xcconfig; sourceTree = "<group>";};
+  A00000000000000000000008 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LinkBudSample.app; sourceTree = BUILT_PRODUCTS_DIR;};
+  A00000000000000000000009 = {isa = XCConfigurationList; buildConfigurations = (A00000000000000000000022, A00000000000000000000023); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
+  A00000000000000000000010 = {isa = XCLocalSwiftPackageReference; relativePath = ..;};
+  A00000000000000000000011 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000013); runOnlyForDeploymentPostprocessing = 0;};
+  A00000000000000000000012 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A00000000000000000000015); runOnlyForDeploymentPostprocessing = 0;};
+  A00000000000000000000013 = {isa = PBXBuildFile; fileRef = A00000000000000000000006;};
+  A00000000000000000000014 = {isa = XCSwiftPackageProductDependency; package = A00000000000000000000010; productName = LinkBud;};
+  A00000000000000000000015 = {isa = PBXBuildFile; productRef = A00000000000000000000014;};
+  A00000000000000000000020 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SWIFT_VERSION = 5.0;}; name = Debug;};
+  A00000000000000000000021 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; SDKROOT = iphoneos; IPHONEOS_DEPLOYMENT_TARGET = 15.0; SWIFT_VERSION = 5.0;}; name = Release;};
+  A00000000000000000000022 = {isa = XCBuildConfiguration; baseConfigurationReference = A00000000000000000000007; buildSettings = {CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = LinkBudSample/LinkBudSample.entitlements; INFOPLIST_FILE = LinkBudSample/Info.plist; PRODUCT_NAME = "$(TARGET_NAME)"; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-Onone";}; name = Debug;};
+  A00000000000000000000023 = {isa = XCBuildConfiguration; baseConfigurationReference = A00000000000000000000007; buildSettings = {CODE_SIGN_STYLE = Automatic; CODE_SIGN_ENTITLEMENTS = LinkBudSample/LinkBudSample.entitlements; INFOPLIST_FILE = LinkBudSample/Info.plist; PRODUCT_NAME = "$(TARGET_NAME)"; TARGETED_DEVICE_FAMILY = "1,2"; SWIFT_OPTIMIZATION_LEVEL = "-O";}; name = Release;};
+ };
+ rootObject = A00000000000000000000001;
+}
