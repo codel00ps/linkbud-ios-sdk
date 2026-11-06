@@ -1,10 +1,20 @@
 # LinkBud iOS SDK · 0.4.0 preview
 
-The local Swift package supports Universal Link input and **explicit** recovery-code entry. iOS 15+ is supported; macOS 12+ is a Foundation test harness, not a macOS app-opening integration. The package uses Swift tools 5.9, Foundation and CryptoKit with no external dependencies. This session verified Swift 6.4 / Xcode 27.1, Swift language mode 5, and an iOS simulator build. Signed-device and real installation/authentication acceptance remains pending.
+The Swift package supports Universal Link input and **explicit** recovery-code entry. iOS 15+ is supported; macOS 12+ is a Foundation test harness, not a macOS app-opening integration. The package uses Swift tools 5.9, Foundation and CryptoKit with no external dependencies. Signed-device and real installation/authentication acceptance remains pending, so treat 0.4.0 as a preview.
 
-## Add the package and configure one environment
+## Install with Swift Package Manager
 
-In Xcode, add the local `ios-sdk` directory as a package dependency and link the `LinkBud` product. No public registry/repository release is configured. Register the signed build's Apple team and bundle IDs in its LinkBud environment. Serve `LINK_URL` directly over public HTTPS with valid TLS, and enable Associated Domains in the app's provisioning profile and entitlements (`applinks:YOUR_LINK_HOST`). Check the generated AASA document for the exact application/environment path. Different environments require distinct registered identities.
+In Xcode, choose **File → Add Package Dependencies**, enter the repository URL, select version `0.4.0`, and add the **LinkBud** product to your app target:
+
+```text
+https://github.com/codel00ps/linkbud-ios-sdk
+```
+
+The repository must be public for unauthenticated installs; otherwise, each developer and build machine needs GitHub access. The release is distributed from the Git tag through Swift Package Manager, not from CocoaPods or the App Store. See [Apple's Swift package instructions](https://developer.apple.com/documentation/xcode/publishing-a-swift-package-with-xcode).
+
+## Configure one environment
+
+Register the signed build's Apple team and bundle IDs in its LinkBud environment. Serve `LINK_URL` directly over public HTTPS with valid TLS, and enable Associated Domains in the app's provisioning profile and entitlements (`applinks:YOUR_LINK_HOST`). Check the generated AASA document for the exact application/environment path. Different environments require distinct registered identities.
 
 ```swift
 import LinkBud
@@ -76,15 +86,15 @@ xcodebuild -project Sample/LinkBudSample.xcodeproj -scheme LinkBudSample \
   -derivedDataPath /tmp/linkbud-ios-derived CODE_SIGNING_ALLOWED=NO build
 ```
 
-The SwiftUI sample forwards cold/warm URLs, preserves one queued URL during an existing operation, supports user code entry, shows retry/errors and waits for a clearly labeled simulated login before its welcome screen. Process restart signs out the simulation while retaining SDK pending input. It has no production login service. See [device acceptance](../linkbud/docs/ios-device-validation.md) for actual authentication and fresh-install requirements.
+The SwiftUI sample forwards cold/warm URLs, preserves one queued URL during an existing operation, supports user code entry, shows retry/errors and waits for a clearly labeled simulated login before its welcome screen. Process restart signs out the simulation while retaining SDK pending input. It has no production login service. See [device acceptance](https://github.com/codel00ps/linkbud.io/blob/master/docs/ios-device-validation.md) for actual authentication and fresh-install requirements.
 
 ## Release procedure
 
-Version 0.4.0 is an unreleased preview. Bump the version/changelog and sample Info.plist metadata when publishing behavior/API changes. Run package tests, simulator and unsigned device builds, backend boundary tests and the acceptance protocol before a release. Do not include provisioning profiles, signing keys, local config, management secrets, tokens or personal data in packages/reports. An operator must select repository ownership, version tags, signing/provenance and distribution access before publishing a package URL or binary. No registry upload, TestFlight or App Store release is performed by this project.
+Version 0.4.0 is a source preview distributed from the `0.4.0` Git tag using Swift Package Manager. It is not an App Store or TestFlight app. For a later SDK release, update the version/changelog and sample Info.plist metadata, run package tests and simulator/device builds, and complete the acceptance protocol. Never include provisioning profiles, signing keys, local config, management secrets, tokens or personal data in packages/reports.
 
 ## Basic analytics
 
-The current native SDK persists a random per-journey event ID and sends it on direct link resolution, including OS-native opens that bypass web redirects. Restart, network retry and login revalidation reuse the ID. Successful deferred exchanges are counted once by the server. No installation identifier is sent for direct-open analytics. An SDK open means successful resolution, potentially before login; acknowledgment/navigation remains local. Upgrade the backend with the analytics migration before using these counts. Older servers ignore the additive request fields, and old SDKs continue resolving without direct-open counts. Read [the analytics contract](../linkbud/docs/analytics.md) for privacy, 30-day retention, public-client trust limits and queue operations.
+The current native SDK persists a random per-journey event ID and sends it on direct link resolution, including OS-native opens that bypass web redirects. Restart, network retry and login revalidation reuse the ID. Successful deferred exchanges are counted once by the server. No installation identifier is sent for direct-open analytics. An SDK open means successful resolution, potentially before login; acknowledgment/navigation remains local. Upgrade the backend with the analytics migration before using these counts. Older servers ignore the additive request fields, and old SDKs continue resolving without direct-open counts. Read [the analytics contract](https://github.com/codel00ps/linkbud.io/blob/master/docs/analytics.md) for privacy, 30-day retention, public-client trust limits and queue operations.
 
 
 ## General link analytics (v2 preview)
@@ -109,11 +119,11 @@ behavior and store/device acceptance limits remain unchanged. Rebuild host apps 
 updating LinkBud alone cannot add destination reporting to an installed app.
 
 
-## Testing and Live · 0.4.0 unpublished preview
+## Testing and Live · 0.4.0 preview
 
-Configure new integrations with testing or live. Staging is retired. Development and Production are accepted legacy aliases for Testing and Live respectively, including URL parsing. The backend echoes the requested API environment for older SDK payload validation. Association documents and Android manifest snippets include both canonical and legacy paths. Refresh app configuration/manifest when adopting new URLs; existing installed Android builds with only a development path filter cannot receive testing URLs until rebuilt. Keep legacy SDK configuration until outstanding pending journeys finish; changing the configured environment changes the SDK storage namespace. No package was published by this change.
+Configure new integrations with Testing or Live. Staging is retired. Development and Production are accepted legacy aliases for Testing and Live respectively, including URL parsing. The backend echoes the requested API environment for older SDK payload validation. Association documents and Android manifest snippets include both canonical and legacy paths. Refresh app configuration/manifest when adopting new URLs; existing installed Android builds with only a development path filter cannot receive testing URLs until rebuilt. Keep legacy SDK configuration until outstanding pending journeys finish; changing the configured environment changes the SDK storage namespace.
 
-### Explicitly opening a shared URL again (unpublished preview)
+### Explicitly opening a shared URL again
 
 `handle(url:)` keeps its existing duplicate protection. For a fresh user activation of a URL
 that returns `.alreadyAcknowledged`, a host with **no pending journey or presented destination**
@@ -141,4 +151,4 @@ after cutover fails and requires a newly shared URL. Adding a prefix preserves s
 identity and pending recovery; always resume/revalidate before authorizing navigation. Recovery
 responses include the same prefix/code context. Android still needs a matching Play installation;
 iOS still requires explicit code entry or reopening the original short link after installation.
-These source changes are unpublished and do not update Aurix or any installed build.
+New SDK releases do not update already-installed host apps; rebuild and distribute the host app to deliver an SDK update.
