@@ -64,7 +64,7 @@ struct LinkBudSampleApp: App {
     var body: some Scene {
         WindowGroup {
             Form {
-                Section("LinkBud iOS preview") {
+                Section("LinkBud iOS sample") {
                     Text("This sample uses simulated login. It does not authenticate or authorize real users.")
                     Text(model.status).accessibilityIdentifier("linkbud-status")
                 }
