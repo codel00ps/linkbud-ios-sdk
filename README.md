@@ -1,10 +1,10 @@
-# LinkBud iOS SDK · 0.4.0 preview
+# LinkBud iOS SDK · 1.0.0
 
-The Swift package supports Universal Link input and **explicit** recovery-code entry. iOS 15+ is supported; macOS 12+ is a Foundation test harness, not a macOS app-opening integration. The package uses Swift tools 5.9, Foundation and CryptoKit with no external dependencies. Signed-device and real installation/authentication acceptance remains pending, so treat 0.4.0 as a preview.
+The Swift package supports Universal Link input and **explicit** recovery-code entry. iOS 15+ is supported; macOS 12+ is a Foundation test harness, not a macOS app-opening integration. The package uses Swift tools 5.9, Foundation and CryptoKit with no external dependencies. Version 1.0.0 establishes the stable public API. The owner confirmed real-device cold/warm links and login/restart recovery passed on November 11, 2026; these are owner-reported integration results, not new device tests performed by release preparation.
 
 ## Install with Swift Package Manager
 
-In Xcode, choose **File → Add Package Dependencies**, enter the repository URL, select version `0.4.0`, and add the **LinkBud** product to your app target:
+In Xcode, choose **File → Add Package Dependencies**, enter the repository URL, select version `1.0.0`, and add the **LinkBud** product to your app target:
 
 ```text
 https://github.com/codel00ps/linkbud-ios-sdk
@@ -90,14 +90,16 @@ The SwiftUI sample forwards cold/warm URLs, preserves one queued URL during an e
 
 ## Release procedure
 
-Version 0.4.0 is a source preview distributed from the `0.4.0` Git tag using Swift Package Manager. It is not an App Store or TestFlight app. For a later SDK release, update the version/changelog and sample Info.plist metadata, run package tests and simulator/device builds, and complete the acceptance protocol. Never include provisioning profiles, signing keys, local config, management secrets, tokens or personal data in packages/reports.
+Version 1.0.0 establishes the public 1.x API baseline without changing the 0.4.0 runtime protocol or persisted journey format. Compatible fixes and additive APIs use patch/minor releases; incompatible public API changes require a major version. Keep Swift tools 5.9 and iOS 15 minimums; macOS is only a test harness. The host remains responsible for authentication, resource authorization and allowlisted navigation.
+
+Distribution uses the public repository's `1.0.0` semantic-version Git tag. Commit the reviewed candidate before tagging; never move an existing release tag. Run package tests and iOS simulator/device-target builds, inspect the source archive, and install the final tag in a clean consumer before claiming publication. No provisioning profiles, signing keys, local config, management secrets, tokens or personal data belong in the package.
 
 ## Basic analytics
 
 The current native SDK persists a random per-journey event ID and sends it on direct link resolution, including OS-native opens that bypass web redirects. Restart, network retry and login revalidation reuse the ID. Successful deferred exchanges are counted once by the server. No installation identifier is sent for direct-open analytics. An SDK open means successful resolution, potentially before login; acknowledgment/navigation remains local. Upgrade the backend with the analytics migration before using these counts. Older servers ignore the additive request fields, and old SDKs continue resolving without direct-open counts. Read [the analytics contract](https://github.com/codel00ps/linkbud.io/blob/master/docs/analytics.md) for privacy, 30-day retention, public-client trust limits and queue operations.
 
 
-## General link analytics (v2 preview)
+## General link analytics (v2)
 
 The SDK requests v2 analytics on direct/recovered resolution. The server returns an optional,
 short-lived opaque reporting receipt. Call the existing `acknowledge` only after actual authorized
@@ -119,7 +121,7 @@ behavior and store/device acceptance limits remain unchanged. Rebuild host apps 
 updating LinkBud alone cannot add destination reporting to an installed app.
 
 
-## Testing and Live · 0.4.0 preview
+## Testing and Live
 
 Configure new integrations with Testing or Live. Staging is retired. Development and Production are accepted legacy aliases for Testing and Live respectively, including URL parsing. The backend echoes the requested API environment for older SDK payload validation. Association documents and Android manifest snippets include both canonical and legacy paths. Refresh app configuration/manifest when adopting new URLs; existing installed Android builds with only a development path filter cannot receive testing URLs until rebuilt. Keep legacy SDK configuration until outstanding pending journeys finish; changing the configured environment changes the SDK storage namespace.
 
@@ -132,9 +134,9 @@ it never grants access or reuses an old authorized payload. Apply the usual logi
 checks and acknowledge only after presentation. Never call reopening for duplicate callbacks
 while the existing screen/journey is active. Recovery-code handling is unchanged, and another
 pending request is rejected rather than replaced. Aurix's Debug demo integration exercises this
-opt-in behavior; physical-device/store publication acceptance remains separate.
+opt-in behavior; host-app acceptance must be repeated when integration behavior changes.
 
-## Short URLs · 0.4.0 preview
+## Short URLs
 
 Configure `routePrefix` with the environment’s immutable three-character Base62 value, without
 slashes. A short link is `https://LINK_HOST/Ab1/Cd34Ef`: prefix and code are case-sensitive.
@@ -152,3 +154,7 @@ identity and pending recovery; always resume/revalidate before authorizing navig
 responses include the same prefix/code context. Android still needs a matching Play installation;
 iOS still requires explicit code entry or reopening the original short link after installation.
 New SDK releases do not update already-installed host apps; rebuild and distribute the host app to deliver an SDK update.
+
+## Privacy and host responsibilities
+
+The package has no third-party dependencies and does not read the clipboard, fingerprint devices or promise automatic App Store recovery. App-private pending state and a random installation identifier are excluded from backup; direct-link analytics use random journey identifiers. Review network/analytics behavior against the host app's App Privacy disclosures. No privacy manifest is currently bundled: the candidate does not use UserDefaults, file-timestamp, disk-space or system-boot-time APIs that require a reason declaration. Reassess manifest requirements whenever APIs/dependencies change; this is not a privacy declaration for the host app.
