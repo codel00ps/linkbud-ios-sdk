@@ -1,0 +1,138 @@
+[
+  {
+    "url": "https://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789",
+    "accepted": true
+  },
+  {
+    "url": "https://links.example.com/Ab1/Cd34Ef",
+    "accepted": true
+  },
+  {
+    "url": "https://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789?extra=value",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789?",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789#fragment",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789#",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789/",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789/extra",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/Cd34Ef?extra=value",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/Cd34Ef?",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/Cd34Ef#fragment",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/Cd34Ef#",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/Cd34Ef/",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/Cd34Ef/extra",
+    "accepted": false
+  },
+  {
+    "url": "http://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789",
+    "accepted": false
+  },
+  {
+    "url": "http://links.example.com/Ab1/Cd34Ef",
+    "accepted": false
+  },
+  {
+    "url": "https://other.example/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789",
+    "accepted": false
+  },
+  {
+    "url": "https://other.example/Ab1/Cd34Ef",
+    "accepted": false
+  },
+  {
+    "url": "https://user:password@links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789",
+    "accepted": false
+  },
+  {
+    "url": "https://user:password@links.example.com/Ab1/Cd34Ef",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com:443/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com:443/Ab1/Cd34Ef",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/production/AbCdEf0123456789",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/l/cccccccccccccccccccccccccc/default/AbCdEf0123456789",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/%41bCdEf0123456789",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/ab1/Cd34Ef",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/%41b1/Cd34Ef",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/%43d34Ef",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/Cd34Ef/../Cd34Ef",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/oauth/callback",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com",
+    "accepted": false
+  },
+  {
+    "url": "custom://callback",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/12345678",
+    "accepted": false
+  },
+  {
+    "url": "https://links.example.com/Ab1/12345",
+    "accepted": false
+  }
+]

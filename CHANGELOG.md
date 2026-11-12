@@ -1,3 +1,11 @@
+# 1.0.1 — November 12, 2026
+
+- Align SDK/sample release metadata to 1.0.1 and configuration to the backend's single `default` environment. Retired environment names must be migrated before rebuilding.
+
+- Expose side-effect-free URL ownership checks for hosts and Flutter.
+- Extend shared URL and reopened-journey restart/backoff regression coverage.
+- Bundle acceptance and analytics guides.
+
 # 1.0.0 — November 11, 2026
 
 - Establish the stable 1.x public API baseline, retaining the existing runtime protocol and stored journeys from 0.4.0.

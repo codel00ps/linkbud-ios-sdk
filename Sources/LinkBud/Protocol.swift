@@ -14,7 +14,7 @@ public struct LinkBudConfiguration: Sendable {
               parts.scheme == "https", parts.host?.isEmpty == false, parts.user == nil, parts.password == nil,
               parts.port == nil, parts.query == nil, parts.fragment == nil, ["", "/"].contains(parts.path),
               applicationID.matches("[a-z0-9]{26}"), sdkID.matches("[a-z0-9]{26}"),
-              ["testing", "live", "development", "production"].contains(environment),
+              environment == "default",
               routePrefix == nil || routePrefix!.matches("[A-Za-z0-9]{3}"),
               appleAppID.matches("[A-Z0-9]{10}\\.[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+") else {
             throw LinkBudError.invalidConfiguration
@@ -27,16 +27,17 @@ public struct LinkBudConfiguration: Sendable {
         self.routePrefix = routePrefix
     }
 
+    /// Checks URL ownership without resolving a destination or changing stored state.
+    public func canHandle(url: URL) -> Bool { (try? reference(url)) != nil }
+
     func slug(_ url: URL) throws -> String {
         guard let parts = URLComponents(url: url, resolvingAgainstBaseURL: false),
               parts.scheme == "https", parts.host == origin.host, parts.port == nil,
               parts.user == nil, parts.password == nil, parts.query == nil, parts.fragment == nil else {
             throw LinkBudError.invalidLink
         }
-        let canonical = environment == "development" ? "testing" : (environment == "production" ? "live" : environment)
-        let alias = canonical == "testing" ? "development" : "production"
-        let prefixes = ["/l/\(applicationID)/\(canonical)/", "/l/\(applicationID)/\(alias)/"]
-        guard let prefix = prefixes.first(where: { parts.percentEncodedPath.hasPrefix($0) }) else { throw LinkBudError.invalidLink }
+        let prefix = "/l/\(applicationID)/default/"
+        guard parts.percentEncodedPath.hasPrefix(prefix) else { throw LinkBudError.invalidLink }
         let slug = String(parts.percentEncodedPath.dropFirst(prefix.count))
         guard slug.matches("[A-Za-z0-9]{16}") else { throw LinkBudError.invalidLink }
         return slug
