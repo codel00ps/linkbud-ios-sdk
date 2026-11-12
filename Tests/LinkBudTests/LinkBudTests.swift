@@ -47,14 +47,57 @@ actor HeldTransport: Transport {
 }
 
 final class LinkBudTests: XCTestCase {
-    func testCurrentEnvironmentsAcceptOnlyTheirOwnLegacyAliases() throws {
-        for (current, legacy) in [("testing", "development"), ("live", "production")] {
-            let configuration = try LinkBudConfiguration(origin: URL(string: "https://links.example.com")!, applicationID: String(repeating: "a", count: 26), environment: current, sdkID: String(repeating: "b", count: 26), appleAppID: "ABCDEFGHIJ.dev.example.app")
-            let root = "https://links.example.com/l/" + configuration.applicationID + "/"
-            XCTAssertEqual(try configuration.slug(URL(string: root + legacy + "/AbCdEf0123456789")!), "AbCdEf0123456789")
-            XCTAssertEqual(try configuration.slug(URL(string: root + current + "/AbCdEf0123456789")!), "AbCdEf0123456789")
-            let other = current == "testing" ? "live" : "testing"
-            XCTAssertThrowsError(try configuration.slug(URL(string: root + other + "/AbCdEf0123456789")!))
+    func testURLOwnershipMatchesSharedPlatformVectors() throws {
+        struct Vector: Decodable { let url: String; let accepted: Bool }
+        let path = try XCTUnwrap(Bundle.module.url(forResource: "link-url-vectors", withExtension: "json", subdirectory: "Fixtures"))
+        let vectors = try JSONDecoder().decode([Vector].self, from: Data(contentsOf: path))
+        let configuration = try shortConfig()
+        for vector in vectors {
+            let url = try XCTUnwrap(URL(string: vector.url))
+            XCTAssertEqual(configuration.canHandle(url: url), vector.accepted, vector.url)
+        }
+        XCTAssertFalse(try config().canHandle(url: URL(string: "https://links.example.com/Ab1/Cd34Ef")!))
+    }
+
+    func testReopenedJourneySurvivesRestartAndKeepsDuplicateProtection() async throws {
+        let (sdk, storage, transport, clock) = try setup()
+        guard case .pending(let original) = await sdk.handle(url: link()) else { return XCTFail() }
+        let firstSaved = await sdk.acknowledge(id: original.id)
+        XCTAssertTrue(firstSaved)
+        transport.offline = true
+        guard case .retryable(let retryAt) = await sdk.reopen(url: link()) else { return XCTFail() }
+        let eventID = transport.bodies.last?["event_id"]
+        XCTAssertNotEqual(transport.bodies.first?["event_id"], eventID)
+        let restarted = try LinkBud(configuration: config(), storage: storage, transport: transport, now: { clock.date })
+        transport.offline = false
+        let early = await restarted.resume()
+        XCTAssertEqual(early, .retryable(retryAt: retryAt))
+        XCTAssertEqual(transport.bodies.count, 2)
+        clock.date = retryAt
+        guard case .pending(let reopened) = await restarted.resume() else { return XCTFail() }
+        XCTAssertNotEqual(original.id, reopened.id)
+        XCTAssertEqual(transport.bodies.last?["event_id"], eventID)
+        let collision = await restarted.reopen(url: link())
+        XCTAssertEqual(collision, .rejected(reason: "pending_destination_exists"))
+        let duplicate = await restarted.handle(url: link())
+        XCTAssertEqual(duplicate, .alreadyAcknowledged)
+        let saved = await restarted.acknowledge(id: reopened.id)
+        XCTAssertTrue(saved)
+        transport.status = 410
+        let unavailable = await restarted.reopen(url: link())
+        XCTAssertEqual(unavailable, .rejected(reason: "http_410"))
+        let pending = await restarted.pending()
+        XCTAssertEqual(pending, .empty)
+        let invalid = await restarted.reopen(url: URL(string: link().absoluteString + "?extra=value")!)
+        XCTAssertEqual(invalid, .rejected(reason: "invalid_link"))
+    }
+
+    func testDefaultIsTheOnlySupportedEnvironment() throws {
+        let configuration = try config()
+        XCTAssertEqual(try configuration.slug(link()), slug)
+        for retired in ["testing", "live", "development", "production", "staging"] {
+            XCTAssertThrowsError(try LinkBudConfiguration(origin: configuration.origin, applicationID: app, environment: retired, sdkID: sdk, appleAppID: configuration.appleAppID))
+            XCTAssertThrowsError(try configuration.slug(URL(string: "https://links.example.com/l/\(app)/\(retired)/\(slug)")!))
         }
     }
 
@@ -63,11 +106,11 @@ final class LinkBudTests: XCTestCase {
     let slug = "AbCdEf0123456789"
     let code = String(repeating: "A", count: 24)
     func config(_ origin: String = "https://links.example.com") throws -> LinkBudConfiguration {
-        try LinkBudConfiguration(origin: URL(string: origin)!, applicationID: app, environment: "development", sdkID: sdk, appleAppID: "A1B2C3D4E5.dev.linkbud.test")
+        try LinkBudConfiguration(origin: URL(string: origin)!, applicationID: app, environment: "default", sdkID: sdk, appleAppID: "A1B2C3D4E5.dev.linkbud.test")
     }
-    func link() -> URL { URL(string: "https://links.example.com/l/\(app)/development/\(slug)")! }
+    func link() -> URL { URL(string: "https://links.example.com/l/\(app)/default/\(slug)")! }
     func payload(_ clock: Clock) -> [String: Any] {
-        ["version": 1, "sdk_id": sdk, "application_id": app, "environment": "development", "slug": slug,
+        ["version": 1, "sdk_id": sdk, "application_id": app, "environment": "default", "slug": slug,
          "destination": "/welcome?source=share", "expires_at": NSNull(), "resolved_at": ISO8601DateFormatter().string(from: clock.date),
          "recovery_expires_at": ISO8601DateFormatter().string(from: clock.date.addingTimeInterval(1800))]
     }
@@ -109,10 +152,10 @@ final class LinkBudTests: XCTestCase {
         }
         let config = try config()
         XCTAssertEqual(try config.slug(link()), slug)
-        for url in ["https://other.example/l/\(app)/development/\(slug)",
+        for url in ["https://other.example/l/\(app)/default/\(slug)",
                     "https://links.example.com/l/\(app)/production/\(slug)",
                     link().absoluteString + "?x=1", link().absoluteString + "/", link().absoluteString + "#fragment",
-                    "https://links.example.com/l/\(app)/development/%41bCdEf0123456789"] {
+                    "https://links.example.com/l/\(app)/default/%41bCdEf0123456789"] {
             XCTAssertThrowsError(try config.slug(URL(string: url)!))
         }
     }
@@ -276,7 +319,7 @@ final class LinkBudTests: XCTestCase {
         for index in 0..<65 {
             let slug = String(format: "%016d", index)
             transport.json["slug"] = slug
-            let url = URL(string: "https://links.example.com/l/\(app)/development/\(slug)")!
+            let url = URL(string: "https://links.example.com/l/\(app)/default/\(slug)")!
             guard case .pending(let pending) = await sdk.handle(url: url) else { return XCTFail() }
             let saved = await sdk.acknowledge(id: pending.id); XCTAssertTrue(saved)
         }
@@ -308,7 +351,7 @@ final class LinkBudTests: XCTestCase {
     }
     func testContextIsolation() throws {
         let (_, storage, transport, _) = try setup()
-        let other = try LinkBudConfiguration(origin: URL(string: "https://other.example")!, applicationID: app, environment: "development", sdkID: sdk, appleAppID: "A1B2C3D4E5.dev.linkbud.test")
+        let other = try LinkBudConfiguration(origin: URL(string: "https://other.example")!, applicationID: app, environment: "default", sdkID: sdk, appleAppID: "A1B2C3D4E5.dev.linkbud.test")
         XCTAssertThrowsError(try LinkBud(configuration: other, storage: storage, transport: transport, now: { Date() }))
     }
     func testNavigationReportsPersistOfflineAndRetryWithoutPrivateAppData() async throws {
@@ -357,7 +400,7 @@ final class LinkBudTests: XCTestCase {
 
     func shortConfig() throws -> LinkBudConfiguration {
         try LinkBudConfiguration(origin: URL(string: "https://links.example.com")!, applicationID: app,
-            environment: "development", sdkID: sdk, appleAppID: "A1B2C3D4E5.dev.linkbud.test", routePrefix: "Ab1")
+            environment: "default", sdkID: sdk, appleAppID: "A1B2C3D4E5.dev.linkbud.test", routePrefix: "Ab1")
     }
 
     func testShortURLRevalidationAndReopeningUseScopedCodeAndFreshJourneys() async throws {

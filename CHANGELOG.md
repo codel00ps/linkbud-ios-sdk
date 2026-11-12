@@ -1,4 +1,21 @@
-# 0.4.0 preview · unpublished
+# 1.0.1 — November 12, 2026
+
+- Align SDK/sample release metadata to 1.0.1 and configuration to the backend's single `default` environment. Retired environment names must be migrated before rebuilding.
+
+- Expose side-effect-free URL ownership checks for hosts and Flutter.
+- Extend shared URL and reopened-journey restart/backoff regression coverage.
+- Bundle acceptance and analytics guides.
+
+# 1.0.0 — November 11, 2026
+
+- Establish the stable 1.x public API baseline, retaining the existing runtime protocol and stored journeys from 0.4.0.
+- Align SDK/sample metadata and installation guidance to 1.0.0; document compatibility and privacy responsibilities.
+- Record owner-confirmed real-device link and login/restart acceptance; Android Play install/referrer and Flutter on both platforms were also confirmed in the coordinated release audit.
+- Preserve explicit iOS recovery, host-owned authentication/authorization, bounded retries and navigation acknowledgment.
+
+Earlier entries below describe historical preview milestones; their acceptance notes are not the current release status.
+
+# 0.4.0 preview
 
 - Add optional public `routePrefix` configuration and strict six-character short-path resolution.
 - Bind direct/recovery responses to the configured prefix; preserve persisted installation identity.
