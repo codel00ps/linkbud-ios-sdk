@@ -6,7 +6,7 @@
 <key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
 <key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>1.0.1</string>
+<key>CFBundleShortVersionString</key><string>2.0.0</string>
 <key>CFBundleVersion</key><string>2</string>
 <key>UILaunchScreen</key><dict/>
 <key>UISupportedInterfaceOrientations</key><array>
@@ -23,5 +23,4 @@
 <key>LinkBudEnvironment</key><string>$(LINKBUD_ENVIRONMENT)</string>
 <key>LinkBudSDKID</key><string>$(LINKBUD_SDK_ID)</string>
 <key>LinkBudAppleAppID</key><string>$(LINKBUD_APPLE_APP_ID)</string>
-<key>LinkBudRoutePrefix</key><string>$(LINKBUD_ROUTE_PREFIX)</string>
 </dict></plist>

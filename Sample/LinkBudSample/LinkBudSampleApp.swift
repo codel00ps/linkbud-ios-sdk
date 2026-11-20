@@ -19,7 +19,7 @@ final class SampleModel: ObservableObject {
                 environment: info["LinkBudEnvironment"] as? String ?? "",
                 sdkID: info["LinkBudSDKID"] as? String ?? "",
                 appleAppID: info["LinkBudAppleAppID"] as? String ?? "",
-                routePrefix: (info["LinkBudRoutePrefix"] as? String).flatMap { $0.isEmpty ? nil : $0 })
+                additionalLinkHosts: []) // Add approved hosts and matching Associated Domains entries.
             sdk = try LinkBud(configuration: config)
             status = "Ready. Open a configured Universal Link or enter a recovery code."
         } catch { status = "Configuration or local storage is unavailable. Check the sample setup guide." }

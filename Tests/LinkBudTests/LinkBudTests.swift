@@ -21,9 +21,10 @@ final class MockTransport: Transport, @unchecked Sendable {
     var json: [String: Any] = [:]
     var bodies: [[String: String]] = []
     var paths: [String] = []
+    var origins: [URL] = []
     var onResponse: (() -> Void)?
     func post(origin: URL, path: String, body: [String: String]) async throws -> APIResponse {
-        bodies.append(body); paths.append(path)
+        bodies.append(body); paths.append(path); origins.append(origin)
         onResponse?()
         if offline { throw URLError(.notConnectedToInternet) }
         return APIResponse(status: status, data: try JSONSerialization.data(withJSONObject: json), retryAfter: retryAfter)
@@ -47,6 +48,103 @@ actor HeldTransport: Transport {
 }
 
 final class LinkBudTests: XCTestCase {
+    func testFinalBackendContractKeepsManagedAuthorityAndRevalidatesAfterHostRemoval() async throws {
+        let file = try XCTUnwrap(Bundle.module.url(forResource: "mobile-domain-contract", withExtension: "json", subdirectory: "Fixtures"))
+        let fixture = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        let values = try XCTUnwrap(fixture["configuration"] as? [String: Any])
+        let response = try XCTUnwrap(fixture["resolution"] as? [String: Any])
+        let origin = URL(string: values["link_origin"] as! String)!
+        let base = try LinkBudConfiguration(origin: origin, applicationID: values["application_id"] as! String, environment: "default",
+            sdkID: values["sdk_id"] as! String, appleAppID: "A1B2C3D4E5.dev.linkbud.sample")
+        let configured = try LinkBudConfiguration(origin: origin, applicationID: base.applicationID, environment: "default", sdkID: base.sdkID,
+            appleAppID: base.appleAppID, additionalLinkHosts: Set(values["additional_link_hosts"] as! [String]))
+        let transport = MockTransport(), storage = MemoryStorage(), clock = Clock()
+        transport.json = response
+        let client = try LinkBud(configuration: configured, storage: storage, transport: transport, now: { clock.date })
+        guard case .pending(let hint) = await client.handle(url: URL(string: fixture["custom_url"] as! String)!) else { return XCTFail() }
+        XCTAssertEqual(hint.destination, response["destination"] as? String)
+        let alias = await client.handle(url: URL(string: fixture["managed_url"] as! String)!)
+        XCTAssertEqual(alias, .pending(hint))
+        let restarted = try LinkBud(configuration: base, storage: storage, transport: transport, now: { clock.date })
+        XCTAssertFalse(base.canHandle(url: URL(string: fixture["custom_url"] as! String)!))
+        let stored = await restarted.pending()
+        XCTAssertEqual(stored, .pending(hint))
+        transport.status = 410
+        let refreshed = await restarted.resume()
+        XCTAssertEqual(refreshed, .rejected(reason: "http_410"))
+        let cleared = await restarted.pending()
+        XCTAssertEqual(cleared, .empty)
+        XCTAssertTrue(transport.origins.allSatisfy { $0 == origin })
+        XCTAssertTrue(transport.paths.allSatisfy { $0 == "/api/v1/resolve" })
+        var forged = response; forged["link_host"] = "go.example.com"
+        XCTAssertThrowsError(try validate(forged, config: configured, recovery: false, now: clock.date, shortCode: "Cd34Ef"))
+    }
+
+    func testAdditionalHostsMatchSharedStrictVectorsWithoutChangingDefaults() throws {
+        struct Vector: Decodable { let url: String; let acceptedByDefault: Bool; let acceptedWithAdditionalHosts: Bool }
+        struct Fixture: Decodable { let additionalLinkHosts: [String]; let invalidAdditionalLinkHosts: [String]; let urls: [Vector] }
+        let path = try XCTUnwrap(Bundle.module.url(forResource: "custom-domain-vectors", withExtension: "json", subdirectory: "Fixtures"))
+        let fixture = try JSONDecoder().decode(Fixture.self, from: Data(contentsOf: path))
+        let base = try config()
+        let configured = try LinkBudConfiguration(origin: base.origin, applicationID: app, environment: "default", sdkID: sdk,
+            appleAppID: base.appleAppID, additionalLinkHosts: Set(fixture.additionalLinkHosts))
+        for vector in fixture.urls {
+            let url = try XCTUnwrap(URL(string: vector.url))
+            XCTAssertEqual(base.canHandle(url: url), vector.acceptedByDefault, vector.url)
+            XCTAssertEqual(configured.canHandle(url: url), vector.acceptedWithAdditionalHosts, vector.url)
+        }
+        for host in fixture.invalidAdditionalLinkHosts {
+            XCTAssertThrowsError(try LinkBudConfiguration(origin: base.origin, applicationID: app, environment: "default", sdkID: sdk,
+                appleAppID: base.appleAppID, additionalLinkHosts: [host]), host)
+        }
+        XCTAssertEqual(configured.context, base.context)
+        XCTAssertEqual(configured.origin, base.origin)
+        XCTAssertEqual(configured.body, base.body)
+    }
+
+    func testAliasesShareJourneyIdentityAndAllowlistChangesKeepStoredState() async throws {
+        let base = try config()
+        let configured = try LinkBudConfiguration(origin: base.origin, applicationID: app, environment: "default", sdkID: sdk,
+            appleAppID: base.appleAppID, additionalLinkHosts: ["go.example.com"])
+        let storage = MemoryStorage(), transport = MockTransport(), clock = Clock()
+        transport.json = payload(clock)
+        let first = try LinkBud(configuration: configured, storage: storage, transport: transport, now: { clock.date })
+        let alias = URL(string: "https://go.example.com/Cd34Ef")!
+        guard case .pending(let pending) = await first.handle(url: alias) else { return XCTFail() }
+        let managed = await first.handle(url: link())
+        XCTAssertEqual(managed, .pending(pending))
+        let restarted = try LinkBud(configuration: base, storage: storage, transport: transport, now: { clock.date })
+        let stored = await restarted.pending()
+        XCTAssertEqual(stored, .pending(pending))
+        let resumed = await restarted.resume()
+        XCTAssertEqual(resumed, .pending(pending))
+        let acknowledged = await restarted.acknowledge(id: pending.id)
+        XCTAssertTrue(acknowledged)
+        let withAliasAgain = try LinkBud(configuration: configured, storage: storage, transport: transport, now: { clock.date })
+        let duplicate = await withAliasAgain.handle(url: alias)
+        XCTAssertEqual(duplicate, .alreadyAcknowledged)
+        XCTAssertTrue(transport.origins.allSatisfy { $0 == base.origin })
+        XCTAssertTrue(transport.paths.allSatisfy { $0 == "/api/v1/resolve" })
+    }
+
+    func testAdditionalHostsCannotReplaceResponseAuthorityOrExplicitRecovery() async throws {
+        let base = try config()
+        let configured = try LinkBudConfiguration(origin: base.origin, applicationID: app, environment: "default", sdkID: sdk,
+            appleAppID: base.appleAppID, additionalLinkHosts: ["go.example.com"])
+        let clock = Clock()
+        _ = try validate(payload(clock), config: configured, recovery: false, now: clock.date, shortCode: "Cd34Ef")
+        for (key, value) in [("link_host", "go.example.com"), ("application_id", String(repeating: "c", count: 26)),
+                             ("sdk_id", String(repeating: "c", count: 26)), ("environment", "testing"), ("short_code", "ZZZZZZ")] {
+            var response = payload(clock); response[key] = value
+            XCTAssertThrowsError(try validate(response, config: configured, recovery: false, now: clock.date, shortCode: "Cd34Ef"))
+        }
+        let transport = MockTransport(); transport.json = payload(clock)
+        let client = try LinkBud(configuration: configured, storage: MemoryStorage(), transport: transport, now: { clock.date })
+        guard case .pending = await client.recover(code: code) else { return XCTFail() }
+        XCTAssertEqual(transport.paths, ["/api/v1/ios/recovery"])
+        XCTAssertEqual(transport.origins, [base.origin])
+    }
+
     func testURLOwnershipMatchesSharedPlatformVectors() throws {
         struct Vector: Decodable { let url: String; let accepted: Bool }
         let path = try XCTUnwrap(Bundle.module.url(forResource: "link-url-vectors", withExtension: "json", subdirectory: "Fixtures"))
@@ -94,10 +192,10 @@ final class LinkBudTests: XCTestCase {
 
     func testDefaultIsTheOnlySupportedEnvironment() throws {
         let configuration = try config()
-        XCTAssertEqual(try configuration.slug(link()), slug)
+        XCTAssertEqual(try configuration.reference(link()).value, "Cd34Ef")
         for retired in ["testing", "live", "development", "production", "staging"] {
             XCTAssertThrowsError(try LinkBudConfiguration(origin: configuration.origin, applicationID: app, environment: retired, sdkID: sdk, appleAppID: configuration.appleAppID))
-            XCTAssertThrowsError(try configuration.slug(URL(string: "https://links.example.com/l/\(app)/\(retired)/\(slug)")!))
+            XCTAssertThrowsError(try configuration.reference(URL(string: "https://links.example.com/l/\(app)/\(retired)/\(slug)")!))
         }
     }
 
@@ -108,9 +206,9 @@ final class LinkBudTests: XCTestCase {
     func config(_ origin: String = "https://links.example.com") throws -> LinkBudConfiguration {
         try LinkBudConfiguration(origin: URL(string: origin)!, applicationID: app, environment: "default", sdkID: sdk, appleAppID: "A1B2C3D4E5.dev.linkbud.test")
     }
-    func link() -> URL { URL(string: "https://links.example.com/l/\(app)/default/\(slug)")! }
+    func link() -> URL { URL(string: "https://links.example.com/Cd34Ef")! }
     func payload(_ clock: Clock) -> [String: Any] {
-        ["version": 1, "sdk_id": sdk, "application_id": app, "environment": "default", "slug": slug,
+        ["version": 1, "link_host": "links.example.com", "short_code": "Cd34Ef", "sdk_id": sdk, "application_id": app, "environment": "default", "slug": slug,
          "destination": "/welcome?source=share", "expires_at": NSNull(), "resolved_at": ISO8601DateFormatter().string(from: clock.date),
          "recovery_expires_at": ISO8601DateFormatter().string(from: clock.date.addingTimeInterval(1800))]
     }
@@ -151,12 +249,12 @@ final class LinkBudTests: XCTestCase {
             XCTAssertThrowsError(try config(origin))
         }
         let config = try config()
-        XCTAssertEqual(try config.slug(link()), slug)
+        XCTAssertEqual(try config.reference(link()).value, "Cd34Ef")
         for url in ["https://other.example/l/\(app)/default/\(slug)",
                     "https://links.example.com/l/\(app)/production/\(slug)",
                     link().absoluteString + "?x=1", link().absoluteString + "/", link().absoluteString + "#fragment",
                     "https://links.example.com/l/\(app)/default/%41bCdEf0123456789"] {
-            XCTAssertThrowsError(try config.slug(URL(string: url)!))
+            XCTAssertThrowsError(try config.reference(URL(string: url)!))
         }
     }
     func testColdWarmResolutionAndAcknowledgment() async throws {
@@ -283,12 +381,12 @@ final class LinkBudTests: XCTestCase {
             guard case .rejected = await sdk.handle(url: link()) else { return XCTFail("Accepted invalid payload") }
         }
     }
-    func testMissingExpiryAndMismatchedSlugRejected() async throws {
+    func testMissingExpiryAndMismatchedCodeRejected() async throws {
         for key in ["expires_at", "recovery_expires_at"] {
             let (sdk, _, transport, _) = try setup(); transport.json.removeValue(forKey: key)
             guard case .rejected = await sdk.recover(code: code) else { return XCTFail() }
         }
-        let (sdk, _, transport, _) = try setup(); transport.json["slug"] = "0000000000000000"
+        let (sdk, _, transport, _) = try setup(); transport.json["short_code"] = "000000"
         guard case .rejected = await sdk.handle(url: link()) else { return XCTFail() }
     }
     func testExpiryDuringResponseNeverBecomesPending() async throws {
@@ -317,9 +415,9 @@ final class LinkBudTests: XCTestCase {
     func testAcknowledgmentHistoryIsBounded() async throws {
         let (sdk, storage, transport, _) = try setup()
         for index in 0..<65 {
-            let slug = String(format: "%016d", index)
-            transport.json["slug"] = slug
-            let url = URL(string: "https://links.example.com/l/\(app)/default/\(slug)")!
+            let slug = String(format: "%06d", index)
+            transport.json["short_code"] = slug
+            let url = URL(string: "https://links.example.com/\(slug)")!
             guard case .pending(let pending) = await sdk.handle(url: url) else { return XCTFail() }
             let saved = await sdk.acknowledge(id: pending.id); XCTAssertTrue(saved)
         }
@@ -400,7 +498,7 @@ final class LinkBudTests: XCTestCase {
 
     func shortConfig() throws -> LinkBudConfiguration {
         try LinkBudConfiguration(origin: URL(string: "https://links.example.com")!, applicationID: app,
-            environment: "default", sdkID: sdk, appleAppID: "A1B2C3D4E5.dev.linkbud.test", routePrefix: "Ab1")
+            environment: "default", sdkID: sdk, appleAppID: "A1B2C3D4E5.dev.linkbud.test")
     }
 
     func testShortURLRevalidationAndReopeningUseScopedCodeAndFreshJourneys() async throws {
@@ -409,12 +507,12 @@ final class LinkBudTests: XCTestCase {
         let transport = MockTransport()
         let clock = Clock()
         transport.json = payload(clock)
-        transport.json["route_prefix"] = "Ab1"
+        transport.json["link_host"] = "links.example.com"
         transport.json["short_code"] = "Cd34Ef"
         let sdk = try LinkBud(configuration: configuration, storage: store, transport: transport, now: { clock.date })
-        let url = URL(string: "https://links.example.com/Ab1/Cd34Ef")!
+        let url = URL(string: "https://links.example.com/Cd34Ef")!
         guard case .pending(let first) = await sdk.handle(url: url) else { return XCTFail("Expected short pending") }
-        XCTAssertEqual(transport.bodies.first?["route_prefix"], "Ab1")
+        XCTAssertNil(transport.bodies.first?["route_prefix"])
         XCTAssertEqual(transport.bodies.first?["code"], "Cd34Ef")
         XCTAssertNil(transport.bodies.first?["slug"])
         XCTAssertNil(transport.bodies.first?["installation_id"])
@@ -427,28 +525,28 @@ final class LinkBudTests: XCTestCase {
 
     func testShortURLValidationRejectsOtherContextsAndUntrustedSuffixes() throws {
         let configuration = try shortConfig()
-        XCTAssertEqual(try configuration.reference(URL(string: "https://links.example.com/Ab1/Cd34Ef")!).value, "Cd34Ef")
+        XCTAssertEqual(try configuration.reference(URL(string: "https://links.example.com/Cd34Ef")!).value, "Cd34Ef")
         for url in ["https://evil.test/Ab1/Cd34Ef", "https://links.example.com/ab1/Cd34Ef", "https://links.example.com/Ab1/12345678",
-                    "https://links.example.com/Ab1/Cd34Ef?x=1", "https://links.example.com/Ab1/Cd34Ef#x", "https://links.example.com/%41b1/Cd34Ef"] {
+                    "https://links.example.com/Cd34Ef?x=1", "https://links.example.com/Cd34Ef#x", "https://links.example.com/%41b1/Cd34Ef"] {
             XCTAssertThrowsError(try configuration.reference(URL(string: url)!))
         }
         XCTAssertThrowsError(try config().reference(URL(string: "https://links.example.com/Ab1/Cd34Ef")!))
     }
 
-    func testShortResponseMustMatchPrefixAndCode() async throws {
-        for (prefix, code) in [("ab1", "Cd34Ef"), ("Ab1", "cd34ef"), ("Ab1", "12345678")] {
+    func testShortResponseMustMatchHostAndCode() async throws {
+        for (host, code) in [("other.example.com", "Cd34Ef"), ("links.example.com", "cd34ef"), ("links.example.com", "12345678")] {
             let transport = MockTransport()
             let clock = Clock()
             transport.json = payload(clock)
-            transport.json["route_prefix"] = prefix
+            transport.json["link_host"] = host
             transport.json["short_code"] = code
             let sdk = try LinkBud(configuration: shortConfig(), storage: MemoryStorage(), transport: transport, now: { clock.date })
-            let result = await sdk.handle(url: URL(string: "https://links.example.com/Ab1/Cd34Ef")!)
+            let result = await sdk.handle(url: URL(string: "https://links.example.com/Cd34Ef")!)
             XCTAssertEqual(result, .rejected(reason: "invalid_payload"))
         }
     }
 
-    func testAddingPrefixKeepsStoredRecoveryInstallationIdentityAcrossUpgrade() async throws {
+    func testRestartKeepsStoredRecoveryInstallationIdentity() async throws {
         let store = MemoryStorage()
         let transport = MockTransport()
         let clock = Clock()
@@ -458,7 +556,7 @@ final class LinkBudTests: XCTestCase {
         clock.date = retryAt
         transport.offline = false
         transport.json = payload(clock)
-        transport.json["route_prefix"] = "Ab1"
+        transport.json["link_host"] = "links.example.com"
         transport.json["short_code"] = "Cd34Ef"
         transport.json["recovery_expires_at"] = ISO8601DateFormatter().string(from: clock.date.addingTimeInterval(600))
         let upgraded = try LinkBud(configuration: shortConfig(), storage: store, transport: transport, now: { clock.date })
@@ -470,12 +568,13 @@ final class LinkBudTests: XCTestCase {
         let transport = MockTransport()
         let clock = Clock()
         transport.json = payload(clock)
+        transport.json.removeValue(forKey: "link_host")
         transport.json["recovery_expires_at"] = ISO8601DateFormatter().string(from: clock.date.addingTimeInterval(600))
         let sdk = try LinkBud(configuration: shortConfig(), storage: MemoryStorage(), transport: transport, now: { clock.date })
         let result = await sdk.recover(code: code)
         XCTAssertEqual(result, .rejected(reason: "invalid_payload"))
         transport.status = 410
-        let unavailable = await sdk.handle(url: URL(string: "https://links.example.com/Ab1/Cd34Ef")!)
+        let unavailable = await sdk.handle(url: URL(string: "https://links.example.com/Cd34Ef")!)
         XCTAssertEqual(unavailable, .rejected(reason: "http_410"))
     }
 
