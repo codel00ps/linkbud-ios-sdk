@@ -1,3 +1,5 @@
+> Historical 1.0.1 release record. Its routing contract is retired; use [2.0.0 release checks](release-2.0.0.md) for application subdomains.
+
 # iOS 1.0.1 release candidate
 
 The Swift package/source distribution is prepared for tag `1.0.1`. Swift tools 5.9, iOS 15 and the existing persisted journey format are retained. Version 1.0.0 remains immutable.

@@ -1,0 +1,32 @@
+{
+  "configuration": {
+    "sdk_id": "bbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "application_id": "aaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "environment": "default",
+    "link_path": "/{code}",
+    "link_origin": "https://links.linkbud.test",
+    "android_package": "dev.linkbud.sample",
+    "android_fingerprints": [
+      "AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA:AA"
+    ],
+    "apple_team_id": "A1B2C3D4E5",
+    "apple_bundle_id": "dev.linkbud.sample",
+    "additional_link_hosts": [
+      "go.example.com"
+    ]
+  },
+  "resolution": {
+    "link_host": "links.linkbud.test",
+    "short_code": "Cd34Ef",
+    "version": 1,
+    "sdk_id": "bbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "application_id": "aaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "environment": "default",
+    "slug": "AbCdEf0123456789",
+    "destination": "/welcome?source=share",
+    "expires_at": null,
+    "resolved_at": "2026-10-26T12:00:00.000000Z"
+  },
+  "managed_url": "https://links.linkbud.test/Cd34Ef",
+  "custom_url": "https://go.example.com/Cd34Ef"
+}

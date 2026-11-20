@@ -1,0 +1,131 @@
+{
+  "additionalLinkHosts": [
+    "GO.EXAMPLE.COM",
+    "xn--bcher-kva.example"
+  ],
+  "invalidAdditionalLinkHosts": [
+    "",
+    "localhost",
+    "https://go.example.com",
+    "*.example.com",
+    ".example.com",
+    "go..example.com",
+    "go.example.com.",
+    " go.example.com",
+    "go.example.com ",
+    "go.example.com:443",
+    "go.example.com/path",
+    "user@go.example.com",
+    "127.0.0.1",
+    "[::1]",
+    "bücher.example",
+    "%67o.example.com",
+    "-go.example.com",
+    "go-.example.com",
+    "go_example.com",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.example.com",
+    "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  ],
+  "urls": [
+    {
+      "url": "https://links.example.com/Cd34Ef",
+      "acceptedByDefault": true,
+      "acceptedWithAdditionalHosts": true
+    },
+    {
+      "url": "https://go.example.com/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": true
+    },
+    {
+      "url": "https://GO.EXAMPLE.COM/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": true
+    },
+    {
+      "url": "https://xn--bcher-kva.example/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": true
+    },
+    {
+      "url": "https://other.example.com/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com.evil.com/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://nested.go.example.com/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com./Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://%67o.example.com/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "http://go.example.com/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://user:pass@go.example.com/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com:443/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com/%43d34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com/Cd34Ef?",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com/Cd34Ef#fragment",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com/continue/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com/Cd34Ef/",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com/Ab1/Cd34Ef",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com/l/aaaaaaaaaaaaaaaaaaaaaaaaaa/default/AbCdEf0123456789",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    },
+    {
+      "url": "https://go.example.com/invalid",
+      "acceptedByDefault": false,
+      "acceptedWithAdditionalHosts": false
+    }
+  ]
+}

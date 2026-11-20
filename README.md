@@ -1,12 +1,14 @@
-# LinkBud iOS SDK · 1.0.1
+> SDK 2.0.0 subdomain candidate — publication pending. Use this checkout for local integration until the new artifacts are released. Published 1.x packages use the retired protocol.
 
-> Release candidate for 1.0.1. Publication and host-device acceptance are separate steps; existing 1.0.0 artifacts and tags remain unchanged.
+# LinkBud iOS SDK · 2.0.0
+
+> Release candidate for 2.0.0. Publication and host-device acceptance are separate steps; existing 1.0.0 artifacts and tags remain unchanged.
 
 The Swift package supports Universal Link input and **explicit** recovery-code entry. iOS 15+ is supported; macOS 12+ is a Foundation test harness, not a macOS app-opening integration. The package uses Swift tools 5.9, Foundation and CryptoKit with no external dependencies. Version 1.0.0 established the stable public API. The owner confirmed real-device cold/warm links and login/restart recovery passed on November 11, 2026; these are owner-reported integration results, not new device tests performed by release preparation.
 
 ## Install with Swift Package Manager
 
-In Xcode, choose **File → Add Package Dependencies**, enter the repository URL, select version `1.0.1`, and add the **LinkBud** product to your app target:
+In Xcode, choose **File → Add Package Dependencies**, enter the repository URL, select version `2.0.0`, and add the **LinkBud** product to your app target:
 
 ```text
 https://github.com/codel00ps/linkbud-ios-sdk
@@ -16,25 +18,24 @@ The repository must be public for unauthenticated installs; otherwise, each deve
 
 ## Configure one environment
 
-Register the signed build's Apple team and bundle IDs in its LinkBud environment. Serve `LINK_URL` directly over public HTTPS with valid TLS, and enable Associated Domains in the app's provisioning profile and entitlements (`applinks:YOUR_LINK_HOST`). Check the generated AASA document for the exact application/environment path. Different environments require distinct registered identities.
+Register the signed build's Apple team and bundle IDs in its LinkBud environment. Serve `LINK_URL` directly over public HTTPS with valid TLS, and enable Associated Domains in the app's provisioning profile and entitlements (`applinks:YOUR_LINK_HOST`). Check the generated AASA document for this application host and its six-character code path. Each application uses its single default configuration.
 
 ```swift
 import LinkBud
 
 let configuration = try LinkBudConfiguration(
-    origin: URL(string: "https://links.example.com")!,
+    origin: URL(string: "https://aurix.linkbud.io")!,
     applicationID: "YOUR_APPLICATION_PUBLIC_ID",
     environment: "default",
     sdkID: "YOUR_ENVIRONMENT_PUBLIC_SDK_ID",
-    appleAppID: "A1B2C3D4E5.com.example.app.dev",
-    routePrefix: "Ab1" // Copy the three-character SDK route prefix from Settings.
+    appleAppID: "A1B2C3D4E5.com.example.app.dev"
 )
 let linkbud = try LinkBud(configuration: configuration)
 ```
 
 Replace the illustrative IDs with the generated lowercase 26-character public IDs. Initialize **one** long-lived instance per configuration in your host's app model. Initialization throws for invalid configuration or corrupt/unavailable storage; show a recoverable error rather than navigating. No management secret belongs in a mobile binary. The SDK requires a root HTTPS origin with no credentials, custom port, query or fragment.
 
-Forward URLs from cold and warm entry points. For SwiftUI, use `.onOpenURL` and `.onContinueUserActivity(NSUserActivityTypeBrowsingWeb)` with `activity.webpageURL`. For UIKit scenes, handle `connectionOptions.userActivities` in `scene(_:willConnectTo:options:)` and `scene(_:continue:)`; for an app without scenes, handle `application(_:continue:restorationHandler:)`. Forward only the browsing-web activity to `await linkbud.handle(url:)`. The SDK verifies the exact HTTPS host, application, environment and six-character code under its configured three-character route prefix. Query strings, fragments, encoded path aliases and other environments are rejected.
+Forward URLs from cold and warm entry points. For SwiftUI, use `.onOpenURL` and `.onContinueUserActivity(NSUserActivityTypeBrowsingWeb)` with `activity.webpageURL`. For UIKit scenes, handle `connectionOptions.userActivities` in `scene(_:willConnectTo:options:)` and `scene(_:continue:)`; for an app without scenes, handle `application(_:continue:restorationHandler:)`. Forward only the browsing-web activity to `await linkbud.handle(url:)`. The SDK verifies the exact HTTPS host, application, environment and six-character code on its configured application domain. Query strings, fragments, encoded path aliases and other environments are rejected.
 
 ## Authentication, persistence and acknowledgment
 
@@ -55,7 +56,7 @@ The actor serializes mutations and refuses incoming input while a network operat
 
 ## Explicit recovery after installing
 
-Share the **iOS install continuation page** beside the link in the tenant workspace. This separate `/continue/{application}/{environment}/{slug}` URL keeps original `/l/...` redirects unchanged. The page explains the flow before issuing anything:
+Share the **iOS install continuation page** beside the link in the tenant workspace. This separate `/continue/{code}` URL is on the application domain and stays in the browser. The page explains the flow before issuing anything:
 
 1. The user requests a code with the visible button; the page shows a selectable code and its UTC expiry.
 2. The user installs the app using the configured App Store link and opens it normally.
@@ -94,7 +95,7 @@ The SwiftUI sample forwards cold/warm URLs, preserves one queued URL during an e
 
 Version 1.0.0 established the public 1.x API baseline without changing the 0.4.0 runtime protocol or persisted journey format. Compatible fixes and additive APIs use patch/minor releases; incompatible public API changes require a major version. Keep Swift tools 5.9 and iOS 15 minimums; macOS is only a test harness. The host remains responsible for authentication, resource authorization and allowlisted navigation.
 
-Distribution uses the public repository's `1.0.1` semantic-version Git tag. Commit the reviewed candidate before tagging; never move an existing release tag. Run package tests and iOS simulator/device-target builds, inspect the source archive, and install the final tag in a clean consumer before claiming publication. No provisioning profiles, signing keys, local config, management secrets, tokens or personal data belong in the package.
+Distribution uses the public repository's `2.0.0` semantic-version Git tag. Commit the reviewed candidate before tagging; never move an existing release tag. Run package tests and iOS simulator/device-target builds, inspect the source archive, and install the final tag in a clean consumer before claiming publication. No provisioning profiles, signing keys, local config, management secrets, tokens or personal data belong in the package.
 
 ## Basic analytics
 
@@ -138,25 +139,66 @@ request is rejected rather than replaced.
 Hosts with other Universal Links can use `configuration.canHandle(url:)` to check the full URL
 format before claiming a callback, without network or storage access.
 
-Configure `routePrefix` with the environment’s immutable three-character Base62 value, without
-slashes. A short link is `https://LINK_HOST/Ab1/Cd34Ef`: prefix and code are case-sensitive.
-Copy the real value from LinkBud Settings; the example is illustrative. The SDK sends the
-configured application/environment/SDK IDs plus `route_prefix` and `code` to resolution and
-checks the response against that context. Short links reject extra path segments, credentials,
-custom ports, queries, fragments and encoded aliases.
+Configure the application’s permanent origin, for example `https://aurix.linkbud.io`.
+A link is `https://aurix.linkbud.io/Cd34Ef`; its six-character Base62 code is case-sensitive.
+There is no route-prefix setting. Direct resolution sends `sdk_id`, `application_id`,
+`environment: default` and `code` to `/api/v1/resolve` on that application origin.
+Direct and recovery responses must include the matching `link_host` and `short_code`.
+The SDK checks the exact HTTPS host, IDs, code and payload before returning a destination.
+Credentials, custom ports, extra segments, encoded path aliases, queries and fragments are rejected.
 
-The optional setting keeps existing constructors working. While the rollout flag is off, old
-paths remain accepted for a staged upgrade; after activation the server rejects legacy slug
-resolution and publishes only short paths in association documents. Update Android manifest
-filters before activation; cached OS association changes may take time. Reopening an old URL
-after cutover fails and requires a newly shared URL. Adding a prefix preserves stored installation
-identity and pending recovery; always resume/revalidate before authorizing navigation. Recovery
-responses include the same prefix/code context. Android still needs a matching Play installation;
-iOS still requires explicit code entry or reopening the original short link after installation.
-New SDK releases do not update already-installed host apps; rebuild and distribute the host app to deliver an SDK update.
+Old prefix URLs and `/l/...` URLs are retired and return 404. SDK 1.x configurations do not
+support this contract. Rebuild and distribute host apps with SDK 2.0.0, replace their configured
+origin and OS associations, and reshare links. A new origin changes the SDK storage namespace;
+finish existing journeys before cutover. Recovery remains limited to matching Play installations
+on Android and explicit code entry or reopening the link on iOS. Continuation pages use
+`https://aurix.linkbud.io/continue/Cd34Ef` and remain in the browser.
+
 
 ## Privacy and host responsibilities
 
 The package has no third-party dependencies and does not read the clipboard, fingerprint devices or promise automatic App Store recovery. App-private pending state and a random installation identifier are excluded from backup; direct-link analytics use random journey identifiers. Review network/analytics behavior against the host app's App Privacy disclosures. No privacy manifest is currently bundled: the candidate does not use UserDefaults, file-timestamp, disk-space or system-boot-time APIs that require a reason declaration. Reassess manifest requirements whenever APIs/dependencies change; this is not a privacy declaration for the host app.
 
-See [the 1.0.1 release checks](docs/release-1.0.1.md) for artifact preparation and publication gates.
+See [the 2.0.0 release checks](docs/release-2.0.0.md) for artifact preparation and publication gates.
+
+## Custom domains
+
+The API origin is always the application's LinkBud subdomain, for example
+`https://aurix.linkbud.io`. Only approved active additional incoming hosts go in
+`additionalLinkHosts`. Saved, pending, disconnected and unavailable domains are omitted
+from LinkBud's generated configuration. Do not put a customer hostname in `origin`, accept
+configuration from an incoming URL, or embed server management credentials in the app.
+
+Backend configuration uses `additional_link_hosts`; map that public list to the SDK's
+`additionalLinkHosts` option. The SDK continues to validate response `link_host` against its
+managed API origin, with exact app/SDK/environment/code identity checks. The cross-repository
+`mobile-domain-contract.json` fixture is checked against actual backend responses and consumed
+by Android, Swift and Flutter tests. Native URL vectors also cover IDNs (ASCII punycode),
+encoded/wildcard/port/foreign hosts and retired paths.
+
+Keep **both** the managed and approved custom hosts in platform declarations. For Android, use
+a separate autoVerify intent filter per exact host, HTTPS only, with `android:pathPattern="/......"`.
+For iOS, add one `applinks:HOST` Associated Domains entry per host. `/continue/{code}` is a browser
+recovery page and must not be captured by the Android six-character filter or iOS associations.
+Flutter needs the declarations for each selected Android/iOS build and its built-in deep-link
+handlers disabled as documented above. Use LinkBud's generated app-specific snippets.
+
+A hostname change needs a new signed mobile build and release. DNS/SSL cannot change installed
+manifests, entitlements or the native client's allowlist snapshot. The samples keep an empty
+additional-host list by default; add approved hosts and matching OS declarations together.
+After removal, backend custom-host HTTP endpoints fail closed and generated exports return to
+managed-only. A stale installed app may still accept a previously configured host and resolve its
+code through the managed API; it cannot resolve another application's code. Update/restart the
+app with the new trusted configuration to reject newly received removed-host URLs. Existing
+pending journeys deliberately survive allowlist changes and are revalidated through the managed
+API; disabled/expired links fail closed. Do not treat domain removal as remote erasure of client
+state or installed OS declarations. Flutter's initialized native engine locks configuration until
+process restart.
+
+Android Play Install Referrer and explicit iOS recovery still use the managed API origin. Never
+claim automatic iOS deferred recovery. Destination hints remain untrusted: revalidate after real
+authentication and acknowledge only successful authorized navigation.
+
+Follow the [signed-device acceptance guide](docs/acceptance.md) before rolling
+out a host app. Verify signed cold and warm launches, store installation, and public HTTPS
+association files for every configured host.

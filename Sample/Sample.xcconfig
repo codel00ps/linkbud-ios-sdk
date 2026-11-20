@@ -6,6 +6,4 @@ LINKBUD_SDK_ID = bbbbbbbbbbbbbbbbbbbbbbbbbb
 LINKBUD_APPLE_APP_ID = A1B2C3D4E5.dev.linkbud.sample
 PRODUCT_BUNDLE_IDENTIFIER = dev.linkbud.sample
 
-// Copy the three-character SDK route prefix from LinkBud Settings.
-LINKBUD_ROUTE_PREFIX =
 #include? "Local.xcconfig"

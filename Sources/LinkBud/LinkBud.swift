@@ -99,11 +99,8 @@ public actor LinkBud {
         var body = config.body
         body["analytics_version"] = "2"
         let recovery = request.kind == "code"
-        if request.kind == "short" {
-            guard let prefix = config.routePrefix else { return reject("missing_route_prefix") }
-            body["route_prefix"] = prefix
-            body["code"] = request.value
-        } else { body[recovery ? "code" : "slug"] = request.value }
+        guard recovery || request.kind == "short" else { return reject("invalid_link") }
+        body["code"] = request.value
         if recovery { body["apple_app_id"] = config.appleAppID; body["installation_id"] = state.installationID }
         do {
             if !recovery {
@@ -119,7 +116,7 @@ public actor LinkBud {
             if response.status == 429 || (500...599).contains(response.status) { return retry(&request, after: response.retryAfter) }
             guard response.status == 200 else { return reject("http_\(response.status)") }
             guard response.data.count <= 16384, let json = try JSONSerialization.jsonObject(with: response.data) as? [String: Any] else { return reject("invalid_payload") }
-            let (destination, expiry) = try validate(json, config: config, slug: request.kind == "slug" ? request.value : nil, recovery: recovery, now: now(), shortCode: request.kind == "short" ? request.value : nil)
+            let (destination, expiry) = try validate(json, config: config, recovery: recovery, now: now(), shortCode: request.kind == "short" ? request.value : nil)
             let deadline = min(request.deadline, expiry ?? request.deadline)
             guard deadline > now() else { return reject("request_expired") }
             let pending = PendingDestination(id: request.id, destination: destination, expiresAt: deadline)
