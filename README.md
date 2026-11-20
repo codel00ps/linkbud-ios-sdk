@@ -1,8 +1,6 @@
-> SDK 2.0.0 subdomain candidate — publication pending. Use this checkout for local integration until the new artifacts are released. Published 1.x packages use the retired protocol.
-
 # LinkBud iOS SDK · 2.0.0
 
-> Release candidate for 2.0.0. Publication and host-device acceptance are separate steps; existing 1.0.0 artifacts and tags remain unchanged.
+> Version 2.0.0 requires the managed-subdomain LinkBud contract. Use the generated Setup values and verify signed-device behavior before shipping your host app.
 
 The Swift package supports Universal Link input and **explicit** recovery-code entry. iOS 15+ is supported; macOS 12+ is a Foundation test harness, not a macOS app-opening integration. The package uses Swift tools 5.9, Foundation and CryptoKit with no external dependencies. Version 1.0.0 established the stable public API. The owner confirmed real-device cold/warm links and login/restart recovery passed on November 11, 2026; these are owner-reported integration results, not new device tests performed by release preparation.
 
